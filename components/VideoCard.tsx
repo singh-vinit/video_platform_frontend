@@ -11,21 +11,34 @@ export default function VideoCard({ video, showCreator = false }: Props) {
     <Link href={`/video/${video.id}`}>
       <div className="group bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden hover:border-zinc-600 transition-all duration-200 hover:-translate-y-0.5">
         {/* Thumbnail placeholder */}
-        <div className="aspect-video bg-zinc-800 relative overflow-hidden flex items-center justify-center">
-          <svg
-            className="w-10 h-10 text-zinc-600 group-hover:text-zinc-500 transition-colors"
-            fill="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path d="M8 5v14l11-7z" />
-          </svg>
-          <div className="absolute inset-0 bg-linear-to-t from-zinc-900/60 to-transparent" />
+        <div className="aspect-video bg-zinc-800 relative overflow-hidden">
+          <video
+            src={video.url}
+            className="w-full h-full object-cover"
+            muted
+            loop
+            playsInline
+            preload="metadata"
+            onMouseEnter={(e) => {
+              const v = e.currentTarget;
+              v.currentTime = 0;
+              v.play();
+            }}
+            onMouseLeave={(e) => {
+              const v = e.currentTarget;
+              v.pause();
+              v.currentTime = 0;
+            }}
+          />
+
+          <div className="absolute inset-0 bg-linear-to-t from-zinc-900/60 to-transparent pointer-events-none" />
         </div>
 
         <div className="p-3">
           <p className="font-syne font-semibold text-sm text-zinc-100 line-clamp-2 group-hover:text-white transition-colors">
             {video.title}
           </p>
+          <p className="text-xs text-zinc-500 mt-1">{video.description}</p>
           <div className="flex items-center justify-between mt-2">
             {showCreator && video.creator && (
               <span className="text-xs text-zinc-500">

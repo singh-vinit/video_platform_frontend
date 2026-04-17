@@ -1,8 +1,7 @@
 "use client";
+
 import { useState, useRef } from "react";
-import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
-import { storage } from "@/lib/firebase";
-import api from "@/lib/api";
+import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,6 +14,8 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Video } from "@/types";
+import api from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
 
 interface Props {
   open: boolean;
@@ -29,45 +30,66 @@ export default function UploadVideoModal({ open, onClose, onUploaded }: Props) {
   const [progress, setProgress] = useState(0);
   const [status, setStatus] = useState<"idle" | "uploading" | "saving">("idle");
   const fileRef = useRef<HTMLInputElement>(null);
+  const {user} = useAuth();
 
   const handleUpload = async () => {
     if (!file || !title.trim()) return;
 
     setStatus("uploading");
-    const storageRef = ref(storage, `videos/${Date.now()}-${file.name}`);
-    const uploadTask = uploadBytesResumable(storageRef, file);
 
-    uploadTask.on(
-      "state_changed",
-      (snapshot) => {
-        setProgress(
-          Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100),
-        );
-      },
-      () => {
-        toast.error("Upload failed", { description: "Firebase upload error" });
-        setStatus("idle");
-      },
-      async () => {
-        const url = await getDownloadURL(uploadTask.snapshot.ref);
-        setStatus("saving");
-        try {
-          const { data } = await api.post("/videos", {
-            title,
-            description,
-            url,
-          });
-          onUploaded(data);
-          toast.success("Video uploaded!", { description: title });
-          handleClose();
-        } catch {
-          toast.error("Save failed", {
-            description: "Could not save video metadata",
-          });
-          setStatus("idle");
-        }
-      },
-    );
+    const fileName = `${Date.now()}-${file.name.replace(/\s/g, "-")}`;
+    const userFolder = `${user?.id}-${user?.name.replace(/\s/g, "-")}`;
+    const bucket = process.env.NEXT_PUBLIC_SUPABASE_BUCKET!;
+
+    console.log("fileName", fileName);
+    console.log("userFolder", userFolder);
+
+    // Supabase doesn't give upload progress natively — simulate it
+    setProgress(30);
+
+    const { data, error } = await supabase.storage
+      .from(bucket)
+      .upload(`${userFolder}/${fileName}`, file, {
+        contentType: file.type,
+        upsert: false,
+      });
+
+    if (error) {
+      toast.error("Upload failed", { description: error.message });
+      setStatus("idle");
+      setProgress(0);
+      return;
+    }
+
+    setProgress(80);
+
+    // Get public URL
+    const { data: urlData } = supabase.storage
+      .from(bucket)
+      .getPublicUrl(data.path);
+
+    const url = urlData.publicUrl;
+
+    setProgress(100);
+    setStatus("saving");
+
+    try {
+      const { data: video } = await api.post("/videos", {
+        title,
+        description,
+        url,
+      });
+      console.log("Video metadata saved:", video);
+      onUploaded(video);
+      toast.success("Video uploaded!", { description: title });
+      handleClose();
+    } catch (err: any) {
+      toast.error("Save failed", {
+        description:
+          err.response?.data?.message || "Could not save video metadata",
+      });
+      setStatus("idle");
+    }
   };
 
   const handleClose = () => {
@@ -141,25 +163,23 @@ export default function UploadVideoModal({ open, onClose, onUploaded }: Props) {
           </div>
 
           {/* Progress bar */}
-          {status === "uploading" && (
+          {(status === "uploading" || status === "saving") && (
             <div className="space-y-1">
               <div className="flex justify-between text-xs text-zinc-500">
-                <span>Uploading to Firebase...</span>
+                <span>
+                  {status === "uploading"
+                    ? "Uploading to Supabase..."
+                    : "Saving metadata..."}
+                </span>
                 <span>{progress}%</span>
               </div>
               <div className="h-1 bg-zinc-800 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-zinc-100 transition-all duration-300"
+                  className="h-full bg-zinc-100 transition-all duration-500"
                   style={{ width: `${progress}%` }}
                 />
               </div>
             </div>
-          )}
-
-          {status === "saving" && (
-            <p className="text-xs text-zinc-500 text-center">
-              Saving video metadata...
-            </p>
           )}
 
           <div className="flex gap-3 pt-2">
