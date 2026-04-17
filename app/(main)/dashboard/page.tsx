@@ -8,6 +8,8 @@ import VideoCard from "@/components/VideoCard";
 import UploadVideoModal from "@/components/UploadVideoModal";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import EditVideoModal from "@/components/EditVideoModal";
+import DeleteVideoModal from "@/components/DeleteVideoModal";
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -15,6 +17,8 @@ export default function DashboardPage() {
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
+  const [editVideo, setEditVideo] = useState<Video | null>(null);
+  const [deleteVideo, setDeleteVideo] = useState<Video | null>(null);
 
   useEffect(() => {
     if (user && user.role !== "CREATOR") router.replace("/feed");
@@ -28,8 +32,11 @@ export default function DashboardPage() {
   }, []);
 
   const handleDelete = async (id: string) => {
-    await api.delete(`/videos/${id}`);
     setVideos((prev) => prev.filter((v) => v.id !== id));
+  };
+
+  const handleUpdated = (updated: Video) => {
+    setVideos((prev) => prev.map((v) => (v.id === updated.id ? updated : v)));
   };
 
   return (
@@ -81,12 +88,21 @@ export default function DashboardPage() {
           {videos.map((v) => (
             <div key={v.id} className="group relative">
               <VideoCard video={v} />
-              <button
-                onClick={() => handleDelete(v.id)}
-                className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-red-500/80 hover:bg-red-500 text-white rounded-md px-2 py-1 text-xs font-syne"
-              >
-                Delete
-              </button>
+              {/* Action buttons — visible on hover */}
+              <div className="absolute top-2 right-2 gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex ">
+                <button
+                  onClick={() => setEditVideo(v)}
+                  className="bg-zinc-800/90 hover:bg-zinc-700 text-zinc-100 rounded-md px-2 py-1 text-xs font-syne"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => setDeleteVideo(v)}
+                  className="bg-red-500/80 hover:bg-red-500 text-white rounded-md px-2 py-1 text-xs font-syne"
+                >
+                  Delete
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -96,6 +112,20 @@ export default function DashboardPage() {
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         onUploaded={(v) => setVideos((prev) => [v, ...prev])}
+      />
+
+      <EditVideoModal
+        video={editVideo}
+        open={!!editVideo}
+        onClose={() => setEditVideo(null)}
+        onUpdated={handleUpdated}
+      />
+
+      <DeleteVideoModal
+        video={deleteVideo}
+        open={!!deleteVideo}
+        onClose={() => setDeleteVideo(null)}
+        onDeleted={handleDelete}
       />
     </div>
   );
