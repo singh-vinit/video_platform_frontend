@@ -20,6 +20,8 @@ export default function CommentSection({ videoId, initialComments }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const socket = getSocket();
 
+  console.log("socket instance:", socket);
+
   useEffect(() => {
     socket.connect();
     socket.emit("join_video", videoId);
@@ -121,7 +123,7 @@ export default function CommentSection({ videoId, initialComments }: Props) {
                     })}
                   </span>
                 </div>
-                <p className="text-sm text-zinc-400 mt-0.5 break-words">
+                <p className="text-sm text-zinc-400 mt-0.5 wrap-break-words">
                   {c.content}
                 </p>
               </div>

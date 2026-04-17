@@ -7,8 +7,7 @@ export function getSocket(): Socket {
     const token = localStorage.getItem("token");
     socket = io(process.env.NEXT_PUBLIC_SOCKET_URL!, {
       auth: { token },
-      path: "/socket.io",
-      autoConnect: false,
+      transports: ["websocket", "polling"],
     });
   }
   return socket;
