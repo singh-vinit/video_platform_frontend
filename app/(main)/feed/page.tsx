@@ -28,6 +28,9 @@ export default function FeedPage() {
         setSubscribedVideos(feedRes.data.subscribedVideos);
         setOtherVideos(feedRes.data.otherVideos);
       })
+      .catch((err) => {
+        console.error("Error fetching feed data:", err);
+      })
       .finally(() => setLoading(false));
   }, []);
 
