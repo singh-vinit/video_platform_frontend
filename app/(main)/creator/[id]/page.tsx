@@ -25,7 +25,9 @@ export default function CreatorPage() {
     ]).then(([creatorRes, subsRes]) => {
       setCreator(creatorRes.data);
       setSubscribed(subsRes.data.some((s: any) => s.creatorId === id));
-    }).finally(() => setLoading(false));
+    })
+    .catch((err) => console.error("Failed to fetch creator or subscriptions:", err))
+    .finally(() => setLoading(false));
   }, [id]);
 
   const toggleSubscribe = async () => {
@@ -38,7 +40,10 @@ export default function CreatorPage() {
         await api.post(`/subscriptions/${id}`);
         setSubscribed(true);
       }
-    } finally {
+    }catch (error) {
+      console.error("Failed to toggle subscription:", error);
+    }
+     finally {
       setSubLoading(false);
     }
   };

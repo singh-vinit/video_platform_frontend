@@ -18,6 +18,7 @@ export default function FeedPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!user) router.replace("/login");
     if (user && user.role !== "USER") router.replace("/dashboard");
   }, [user]);
 

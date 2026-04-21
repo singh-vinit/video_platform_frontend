@@ -21,6 +21,7 @@ export default function VideoPage() {
   useEffect(() => {
     api.get(`/videos/${id}`)
       .then((r) => setVideo(r.data))
+      .catch((err) => console.error("Failed to fetch video:", err))
       .finally(() => setLoading(false));
   }, [id]);
 

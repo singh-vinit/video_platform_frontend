@@ -21,6 +21,8 @@ export default function DashboardPage() {
   const [deleteVideo, setDeleteVideo] = useState<Video | null>(null);
 
   useEffect(() => {
+    console.log(user);
+    if(!user) router.replace("/login");
     if (user && user.role !== "CREATOR") router.replace("/feed");
   }, [user]);
 
@@ -28,6 +30,7 @@ export default function DashboardPage() {
     api
       .get("/videos/my")
       .then((r) => setVideos(r.data))
+      .catch((err) => console.error("Failed to fetch videos:", err))
       .finally(() => setLoading(false));
   }, []);
 
